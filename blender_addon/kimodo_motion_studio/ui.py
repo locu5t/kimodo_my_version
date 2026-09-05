@@ -13,7 +13,8 @@ from bpy.props import (BoolProperty, CollectionProperty, EnumProperty, FloatProp
                        IntProperty, PointerProperty, StringProperty, FloatVectorProperty)
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 from .timeline import load_json, parse_prompts, frame_prompts, export_prompts
-from . import process, rig
+from . import process, rig, storage_ui
+from .model_storage import STORAGE_OPERATIONS, DOWNLOAD_OPERATIONS
 
 _ACTIVE = None
 _DRAW_HANDLE = None
@@ -69,8 +70,15 @@ class KMD_Preferences(bpy.types.AddonPreferences):
     wsl_python: StringProperty(name="WSL venv Python", default="/home/USER/venvs/kimodo/bin/python")
     distro: StringProperty(name="WSL distribution", default="Ubuntu-22.04")
     output_root: StringProperty(name="Output/job folder", subtype="DIR_PATH")
-    allow_downloads: BoolProperty(name="Allow model downloads during generation", default=False,
-        description="Allows the external Kimodo process to download missing Hugging Face models. Model licenses still apply")
+    model_mode: EnumProperty(name="Model location", items=[
+        ("MANAGED", "Download folder", "Select a preset and use its downloaded folder"),
+        ("MANUAL", "Manual path", "Use an existing complete local checkpoint; do not modify it")])
+    models_root: StringProperty(name="Model download folder", subtype="DIR_PATH")
+    manual_model_path: StringProperty(name="Manual checkpoint folder", subtype="DIR_PATH")
+    model_cache_root: StringProperty(name="Dependency cache folder", subtype="DIR_PATH")
+    include_text_encoder: BoolProperty(name="Also download required text encoder", default=True)
+    model_storage_details: BoolProperty(name="Dependency/cache options", default=False)
+    text_encoder_device: StringProperty(name="Text encoder device", default="auto")
 
     def draw(self, context):
         layout = self.layout
@@ -81,7 +89,7 @@ class KMD_Preferences(bpy.types.AddonPreferences):
         else:
             layout.prop(self, "python_path")
         layout.prop(self, "repo_path"); layout.prop(self, "output_root")
-        layout.prop(self, "allow_downloads")
+        storage_ui.draw_storage(layout, context)
         layout.label(text="Use an existing Kimodo environment. Do not install torch inside Blender")
         layout.operator("kimodo.run_job", text="Check backend imports").operation = "check"
 
@@ -115,6 +123,8 @@ class KMD_Take(bpy.types.PropertyGroup):
 class KMD_Settings(bpy.types.PropertyGroup):
     tab: EnumProperty(name="Section", items=[("GENERATE","Generate",""),("CONSTRAINTS","Constraints",""),
         ("FILES","Load / Save",""),("VISUALIZE","Visualize",""),("HELP","Help","")], default="GENERATE")
+    model_report: StringProperty(default="")
+    model_preset: EnumProperty(name="Model", items=storage_ui.PRESETS, get=storage_ui.preset_get, set=storage_ui.preset_set)
     dataset: EnumProperty(name="Training dataset", items=[("RP","Rigplay",""),("SEED","BONES-SEED","")])
     skeleton_choice: EnumProperty(name="Skeleton", items=[("SOMA","SOMA human",""),("G1","G1 robot",""),("SMPLX","SMPL-X human","")])
     version_choice: EnumProperty(name="Version", items=[("v1.1","v1.1","SOMA only"),("v1","v1","")])
@@ -329,7 +339,8 @@ class KMD_OT_Cancel(bpy.types.Operator):
 class KMD_OT_Run(bpy.types.Operator):
     bl_idname = "kimodo.run_job"
     bl_label = "Run Kimodo"
-    operation: EnumProperty(items=[(x, x.title(), "") for x in ("check", "import", "generate", "continue", "export", "prepare")])
+    operation: EnumProperty(items=[(x, x.title(), "") for x in ("check", "import", "generate", "continue", "export", "prepare", "check_models", "download_model", "download_text")])
+    download_confirmed: BoolProperty(default=False, options={"HIDDEN", "SKIP_SAVE"})
     source_file: StringProperty(subtype="FILE_PATH")
 
     @classmethod
@@ -364,9 +375,17 @@ class KMD_OT_Run(bpy.types.Operator):
                        "context_frames": s.context, "blend_frames": s.blend,
                        "text_guidance": s.text_guidance, "constraint_guidance": s.constraint_guidance,
                        "postprocess": s.postprocess, "export_bvh": s.export_bvh,
-                       "allow_downloads": pref.allow_downloads,
+                       "storage": storage_ui.storage_request(pref),
+                       "download_confirmed": self.download_confirmed,
+                       "include_text_encoder": pref.include_text_encoder,
                        "num_samples": s.num_samples, "root_margin": s.root_margin, "heading": s.heading, "align_first": s.align_first,
                        "scene_fps": rig.scene_fps(scene), "sequence_origin": s.source_end+1 if self.operation=="continue" else s.start_frame}
+            if self.operation in DOWNLOAD_OPERATIONS and not self.download_confirmed:
+                raise ValueError("Use the Download / resume button and confirm its destination")
+            if self.operation in {"generate", "continue", "prepare", "download_model"}:
+                from .model_storage import checkpoint_folder
+                checkpoint_folder(storage_ui.storage_request(pref, translate=False), selected_model,
+                                  download=self.operation == "download_model")
             if self.operation in {"generate", "continue"}:
                 request["timeline"] = export_prompts(enabled_prompts(scene))
                 spans = frame_prompts(enabled_prompts(scene), rig.scene_fps(scene))
@@ -396,7 +415,8 @@ class KMD_OT_Run(bpy.types.Operator):
             _ACTIVE = {"process": proc, "log": logfile, "timer": timer, "wm": wm,
                        "folder": folder, "scene": scene, "start": start, "operation": self.operation,
                        "backend": pref.backend, "distro": pref.distro, "baker": None, "cancel": False,
-                       "queue": [], "finished": 0, "samples": []}
+                       "queue": [], "finished": 0, "samples": [],
+                       "storage_key": storage_ui.fingerprint(selected_model, request["storage"])}
             self._job = _ACTIVE
             s.last_job = str(folder); s.status = "Kimodo worker started"
             wm.modal_handler_add(self)
@@ -413,7 +433,9 @@ class KMD_OT_Run(bpy.types.Operator):
         if _ACTIVE is not job:
             return {"CANCELLED"}
         if event.type == "ESC" or job["cancel"]:
-            job["scene"].kimodo_studio.status = "Cancelled; original animation retained"
+            job["scene"].kimodo_studio.status = (
+                "Cancelled; completed files retained, use Download / resume to continue"
+                if job["operation"] in DOWNLOAD_OPERATIONS else "Cancelled; original animation retained")
             cleanup_job(job, cancel=True); redraw(); return {"CANCELLED"}
         if event.type != "TIMER":
             return {"PASS_THROUGH"}
@@ -455,6 +477,12 @@ class KMD_OT_Run(bpy.types.Operator):
                 redraw(); return {"RUNNING_MODAL"}
             if code != 0 or status.get("state") != "done":
                 raise RuntimeError(status.get("message", f"Worker exited with {code}. Open worker.log"))
+            if job["operation"] in STORAGE_OPERATIONS:
+                report = status.get("model_report", {})
+                report["key"] = job["storage_key"]
+                s.model_report = json.dumps(report)
+                s.status = status.get("message", "Model storage job complete")
+                cleanup_job(job); redraw(); return {"FINISHED"}
             if job["operation"] in {"check", "export"}:
                 s.status = status.get("message", "Done") + f" — {folder}"
                 cleanup_job(job); redraw(); return {"FINISHED"}
@@ -535,6 +563,7 @@ def register():
     bpy.app.handlers.load_pre.append(file_load_pre)
     from . import studio, interaction
     studio.register()
+    storage_ui.register()
     interaction.register()
     studio.migrate_legacy()
 
@@ -550,6 +579,7 @@ def unregister():
         _DRAW_HANDLE = None
     from . import studio, interaction
     interaction.unregister()
+    storage_ui.unregister()
     studio.unregister()
     if hasattr(bpy.types.Scene, "kimodo_studio"):
         del bpy.types.Scene.kimodo_studio

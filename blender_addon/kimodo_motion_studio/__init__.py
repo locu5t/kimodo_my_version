@@ -2,16 +2,19 @@
 """Kimodo Motion Studio. GPU inference runs outside Blender's Python."""
 bl_info = {
     "name": "Kimodo Motion Studio", "author": "locu5t and contributors",
-    "version": (0, 2, 0), "blender": (4, 2, 0),
+    "version": (0, 4, 0), "blender": (4, 2, 0),
     "location": "3D View > Sidebar > Kimodo; Dope Sheet > Sidebar > Kimodo",
     "description": "Native timeline, constraint authoring, prompt JSON and motion continuation",
     "category": "Animation",
 }
 
 def register():
-    from . import ui
+    from . import ui, setup_ui
+    setup_ui.extend_preferences(ui)
     ui.register()
+    setup_ui.register()
 
 def unregister():
-    from . import ui
+    from . import ui, setup_ui
+    setup_ui.unregister()
     ui.unregister()
