@@ -143,7 +143,7 @@ def clean_environment(p, compute):
     # Do not inherit another activated venv, pip/uv target, or Blender's Python paths.
     env = {k: v for k, v in os.environ.items() if not k.startswith(('PYTHON', 'UV_', 'PIP_', 'CONDA'))
            and k not in ('VIRTUAL_ENV', '_CE_CONDA', '_CE_M', 'LD_LIBRARY_PATH', 'LD_PRELOAD')}
-    env.update(PYTHONNOUSERSITE='1', PYTHONUNBUFFERED='1',
+    env.update(PYTHONNOUSERSITE='1', PYTHONUNBUFFERED='1', PYTHONIOENCODING='utf-8',
                UV_CACHE_DIR=str(p['home'] / 'cache/uv'),
                UV_PYTHON_INSTALL_DIR=str(p['home'] / 'python'),
                UV_PYTHON_INSTALL_BIN='false', UV_PYTHON_INSTALL_REGISTRY='false',
@@ -351,7 +351,7 @@ class Installer:
             while self.child.poll() is None:
                 self.cancelled(); time.sleep(.2)
             if self.child.returncode:
-                raise RuntimeError(f'Setup command failed ({self.child.returncode}). See setup.log for the exact dependency error')
+                raise RuntimeError(f'Setup command failed ({self.child.returncode}). Open the setup folder and read setup-*.log for the dependency error')
         except BaseException:
             stop_child(self.child)
             raise
@@ -404,6 +404,11 @@ class Installer:
                                     '\nsetuptools==75.8.2\nwheel==0.45.1\n', encoding='utf-8')
             constraints = self.p['home'] / 'constraints.txt'
             constraints.write_text('torch==' + TORCH_VERSION + '\ntransformers==5.1.0\n', encoding='utf-8')
+            # Hydra needs this pure-Python package, whose 4.9.x releases have no wheels.
+            # Install the pinned exception separately; all other registry dependencies
+            # still require wheels. No C/C++ compiler or system package install occurs.
+            self.command(pip + ['--index-url', 'https://pypi.org/simple',
+                               'antlr4-python3-runtime==4.9.3'])
             self.command(pip + ['--index-url', 'https://pypi.org/simple', '--only-binary', ':all:',
                                '--constraint', constraints, '--requirement', requirements])
             # C++ MotionCorrection is optional. Never install compilers or elevation tools.
@@ -457,6 +462,10 @@ def probe(path, compute):
 
 
 def main():
+    # Redirected Windows stdout otherwise uses cp1252 and can break status/logging.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf-8', errors='replace')
     parser = argparse.ArgumentParser()
     parser.add_argument('--root'); parser.add_argument('--compute', choices=['cu128', 'cpu'], default='cu128')
     parser.add_argument('--approved', action='store_true')

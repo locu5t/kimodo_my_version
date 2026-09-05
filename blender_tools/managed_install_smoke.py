@@ -9,6 +9,9 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, 'reconfigure'):
+        stream.reconfigure(encoding='utf-8', errors='replace')
 root=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(root/'blender_addon'))
 from kimodo_motion_studio import managed_setup as ms
