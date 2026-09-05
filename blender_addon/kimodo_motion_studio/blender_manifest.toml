@@ -1,6 +1,6 @@
 schema_version = "1.0.0"
 id = "kimodo_motion_studio"
-version = "0.3.0"
+version = "0.4.0"
 name = "Kimodo Motion Studio"
 tagline = "Native motion timelines, constraints, JSON and continuation"
 maintainer = "locu5t and contributors"
@@ -11,5 +11,5 @@ license = ["SPDX:GPL-3.0-or-later"]
 website = "https://github.com/locu5t/kimodo_my_version"
 
 [permissions]
-files = "Read prompt and animation files, write generated motion and job logs"
-network = "External Kimodo backend may download models when explicitly enabled"
+files = "Create isolated backend, store models, and read/write motion files and logs"
+network = "Download the isolated backend after setup approval and model weights on request"

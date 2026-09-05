@@ -1,19 +1,15 @@
-# Native Kimodo Motion Studio for Blender
+# Kimodo Motion Studio 0.4.0
 
-The active implementation is `kimodo_motion_studio/` (version 0.3.0).
-It consolidates the earlier prompt-only scaffold and local generation prototype
-into one extension: native authoring panels, interactive prompt/constraint lanes,
-timed JSON import/export, pose/path constraints, motion import and continuation.
+Build: `python blender_tools/build_addon.py` from the repository root.
+Install `blender_dist/kimodo_motion_studio-0.4.0.zip` in Blender 5.2 using
+**Install from Disk**, and enable the add-on. A fresh install opens a local setup
+dialog automatically; approve the folder once and backend preparation runs without
+manual Python/venv/bridge commands. Download model weights separately in Generate.
 
-See [the complete guide](../BLENDER_README.md) for installation, controls, validation
-status and known limits. Build the installable ZIP with:
+See **BLENDER_SETUP.md** for setup, storage, retry, platform support and the
+optional compiled-cleanup limitation. See **BLENDER_README.md** for the native
+UI, JSON, constraints and continuation workflow inherited from 0.3.0.
 
-```shell
-python blender_tools/build_addon.py
-```
-
-Do not install the repository source ZIP as a Blender extension. Disable the old
-`kimodo_blender` alpha before installing this version. The original Kimodo Python
-model and web demo are unchanged.
-
-See `BLENDER_README.md` for local Download folder / Manual path storage and explicit offline generation.
+Disable older duplicate Kimodo add-ons before installing. Source archives are
+not Blender extension ZIPs. This is a development alpha; read the validation
+report and actual CI results before assuming end-to-end GPU compatibility.

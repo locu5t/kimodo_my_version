@@ -79,6 +79,12 @@ try:
         props=ui.KMD_Preferences.__annotations__
         assert all(k in props for k in ('models_root','manual_model_path','model_cache_root','model_mode'))
         checks.append('model preset mapping, storage preferences and explicit-download operator registered')
+        assert all(k in props for k in ('setup_mode','setup_root','setup_compute','setup_prompted'))
+        assert hasattr(bpy.ops.kimodo,'setup_backend') and hasattr(bpy.ops.kimodo,'cancel_setup')
+        from kimodo_motion_studio import setup_ui
+        assert not bpy.app.timers.is_registered(setup_ui.first_enable)
+        assert setup_ui._JOB is None
+        checks.append('managed setup RNA registered; background registration starts no downloads')
         checks.append('all native panel sections registered')
     report={'blender_version':bpy.app.version_string,'status':'passed','checks':checks,
             'interactive_mouse_and_gpu_draw':'not tested','real_kimodo_inference':'not tested'}

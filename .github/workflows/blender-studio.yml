@@ -23,7 +23,7 @@ jobs:
       - run: python blender_tools/build_addon.py
       - uses: actions/upload-artifact@v4
         with:
-          name: kimodo-motion-studio-0.3.0
+          name: kimodo-motion-studio-0.4.0
           path: |
             blender_dist/*.zip
             blender-tests.xml
@@ -49,3 +49,30 @@ jobs:
         with:
           name: blender-smoke-${{ matrix.bpy }}
           path: blender-smoke.json
+
+  managed-install:
+    name: managed-install (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install isolated CPU backend and verify reuse (no model weights)
+        env:
+          KIMODO_SETUP_TEST_ROOT: ${{ runner.temp }}/kimodo-managed-test
+        run: python blender_tools/managed_install_smoke.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: managed-install-${{ matrix.os }}
+          path: |
+            managed-install-report.json
+            ${{ runner.temp }}/kimodo-managed-test/integration.log
+            ${{ runner.temp }}/kimodo-managed-test/runtimes/*/status.json
+            ${{ runner.temp }}/kimodo-managed-test/runtimes/*/probe.json
