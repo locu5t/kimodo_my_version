@@ -1,11 +1,22 @@
 {
   "version": "0.4.0",
-  "local_unit_and_fixture_tests": {"passed": 190, "failed": 0},
+  "local_unit_and_fixture_tests": {
+    "passed": 192,
+    "failed": 0
+  },
   "python_compilation": "passed",
-  "new_installer_network_tests": "not run locally: container has no network access",
-  "real_bpy": "not available locally; CI smoke jobs supplied",
+  "ci_tested_code_commit": "a6cf4e24f655d8dcc2885cc6b2f1cf43795d0c24",
+  "ci_run_id": 33965639770,
+  "ci_results": {
+    "core": "passed",
+    "blender_4.5.3_smoke": "passed",
+    "blender_5.2.1_smoke": "passed",
+    "fresh_cpu_install_and_reuse_windows": "passed",
+    "fresh_cpu_install_and_reuse_linux": "passed"
+  },
+  "ci_scope": "Actual fresh CPU dependency installation, backend imports, four skeleton FK checks and CPU tensor operation; no model weights. Final follow-up adds regression tests and documentation only.",
   "interactive_setup_popup": "not tested",
-  "nvidia_cuda_installation": "not tested",
+  "nvidia_cuda_installation_and_inference": "not tested",
   "model_weights_and_gated_auth": "not tested",
-  "ci": "Check the Actions run for this commit; workflow definitions are not proof of passing tests"
+  "optional_compiled_motion_correction": "not installed by managed profile"
 }

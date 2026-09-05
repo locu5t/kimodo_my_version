@@ -82,7 +82,8 @@ optional postprocessing path. The original skeleton/retargeting limitations in
 The uv bootstrap is version-pinned and checked against published SHA-256 hashes.
 The downloaded Kimodo ZIP is checked against the entire pinned Git tree before
 any source is extracted or setup.py runs. Package installation names only the
-owned venv and uses binary wheels for third-party dependencies. The local Kimodo
+owned venv and uses binary wheels for third-party dependencies, except the pinned pure-Python
+ANTLR 4.9.3 runtime required by Hydra, which ships only as source. The local Kimodo
 package is built with its optional C++ extension disabled. The profile pins Python,
 PyTorch and Transformers; other dependencies follow the pinned upstream manifest,
 so this is not a fully locked transitive dependency environment. Exact installed
