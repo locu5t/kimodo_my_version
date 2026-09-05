@@ -1,0 +1,9 @@
+Kimodo Motion Studio 0.2.0
+Independent native Blender integration by locu5t and contributors.
+
+This add-on is GPL-3.0-or-later; see LICENSE.
+NVIDIA Kimodo is an external dependency with its own Apache-2.0 source license.
+Model weights, SOMA/SMPL-X assets and third-party components retain their own
+terms. None of those weights/assets is included or relicensed by this add-on.
+Original project: https://github.com/nv-tlabs/kimodo
+Development repository: https://github.com/locu5t/kimodo_my_version

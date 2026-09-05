@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "date": "2026-09-05",
+  "python": "3.13.5",
+  "unit_and_mock_contract_tests": {
+    "passed": 123,
+    "failed": 0,
+    "skipped": 0,
+    "command": "python -m pytest blender_tests -q",
+    "duration_seconds": 2.08
+  },
+  "python_compile": "passed",
+  "blender_registration_and_baking": "not run locally; bpy unavailable",
+  "interactive_timeline_and_gpu_drawing": "not run",
+  "real_kimodo_model_inference": "not run",
+  "windows_wsl_cuda_integration": "not run",
+  "ci": {
+    "configured_smoke_versions": [
+      "4.5.3",
+      "5.2.1"
+    ],
+    "status": "pending publication; consult actual GitHub Actions results"
+  },
+  "note": "Mock-model contract tests validate adapter arguments and frame accounting, not generated motion quality."
+}

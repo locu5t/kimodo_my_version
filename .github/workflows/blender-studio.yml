@@ -1,0 +1,51 @@
+name: Blender Motion Studio
+on:
+  push:
+    branches: [feature/blender-motion-studio]
+    paths: ['blender_addon/**', 'blender_tests/**', 'blender_tools/**', '.github/workflows/blender-studio.yml']
+  pull_request:
+    paths: ['blender_addon/**', 'blender_tests/**', 'blender_tools/**', '.github/workflows/blender-studio.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install numpy pytest
+      - run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: python -m pytest blender_tests -q --junitxml=blender-tests.xml
+      - run: python -m compileall -q blender_addon
+      - run: python blender_tools/build_addon.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kimodo-motion-studio-0.2.0
+          path: |
+            blender_dist/*.zip
+            blender-tests.xml
+  blender-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python: '3.11'
+            bpy: '4.5.3'
+          - python: '3.13'
+            bpy: '5.2.1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install bpy==${{ matrix.bpy }}
+      - run: python blender_tools/blender_smoke_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blender-smoke-${{ matrix.bpy }}
+          path: blender-smoke.json
