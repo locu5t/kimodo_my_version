@@ -1,23 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Kimodo Motion Studio. GPU inference runs outside Blender's Python."""
 bl_info = {
-    "name": "Kimodo Motion Studio",
-    "author": "locu5t / OpenAI",
-    "version": (0, 1, 0),
-    "blender": (4, 0, 0),
-    "location": "View3D > Sidebar > Kimodo",
-    "description": "Blender integration for Kimodo prompt timelines, motion continuation, and blending",
+    "name": "Kimodo Motion Studio", "author": "locu5t and contributors",
+    "version": (0, 2, 0), "blender": (4, 2, 0),
+    "location": "3D View > Sidebar > Kimodo; Dope Sheet > Sidebar > Kimodo",
+    "description": "Native timeline, constraint authoring, prompt JSON and motion continuation",
     "category": "Animation",
 }
 
-from . import operators, panels, properties
-
-_modules = (properties, operators, panels)
-
-
 def register():
-    for module in _modules:
-        module.register()
-
+    from . import ui
+    ui.register()
 
 def unregister():
-    for module in reversed(_modules):
-        module.unregister()
+    from . import ui
+    ui.unregister()

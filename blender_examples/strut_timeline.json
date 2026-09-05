@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "prompts": [
+    {"text": "A person walks forward with a confident strut", "duration_seconds": 6},
+    {"text": "The person slows down, stops and turns to face the other way", "duration_seconds": 3},
+    {"text": "The person raises their right hand and waves", "duration_seconds": 2.5}
+  ]
+}
