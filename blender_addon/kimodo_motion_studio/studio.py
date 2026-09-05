@@ -505,15 +505,10 @@ def draw_panel(layout,context):
     layout.prop(s,'tab',text='')
     if s.tab=='GENERATE':
         box=layout.box(); box.label(text='Model selection',icon='ARMATURE_DATA')
-        box.prop(s,'custom_model')
+        box.prop(s,'model_preset')
         if s.custom_model:
             box.prop(s,'model')
-        else:
-            box.prop(s,'dataset'); box.prop(s,'skeleton_choice'); box.prop(s,'version_choice')
-            try:
-                box.label(text=model_name(s.dataset,s.skeleton_choice,s.version_choice))
-            except ValueError:
-                box.label(text='This combination is unavailable; choose v1',icon='ERROR')
+        ui.storage_ui.draw_storage(layout,context)
         box.operator('kimodo.run_job',text='Load model / create native rig',icon='ARMATURE_DATA').operation='prepare'
         row=layout.row(align=True)
         row.operator('kimodo.import_prompts',text='Import JSON',icon='IMPORT')
@@ -592,7 +587,8 @@ def draw_panel(layout,context):
             box.prop(pref,'wsl_python'); box.prop(pref,'distro')
         else:
             box.prop(pref,'python_path')
-        box.prop(pref,'repo_path'); box.prop(pref,'output_root'); box.prop(pref,'allow_downloads')
+        box.prop(pref,'repo_path'); box.prop(pref,'output_root')
+        ui.storage_ui.draw_storage(layout,context)
         box.operator('kimodo.run_job',text='Check backend imports').operation='check'
     elif s.tab=='VISUALIZE':
         layout.prop(s,'rig_source'); layout.prop(s,'display_type'); layout.prop(s,'show_names')

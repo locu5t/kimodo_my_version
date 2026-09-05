@@ -1,25 +1,27 @@
 {
-  "version": "0.2.0",
-  "date": "2026-09-05",
-  "python": "3.13.5",
-  "unit_and_mock_contract_tests": {
-    "passed": 123,
-    "failed": 0,
-    "skipped": 0,
-    "command": "python -m pytest blender_tests -q",
-    "duration_seconds": 2.08
+  "version": "0.3.0",
+  "base_commit": "00af2ffd2a9cd14ac40ad65ace013eed2a0f8da6",
+  "local": {
+    "unit_and_mock_contract_tests": 162,
+    "passed": 162,
+    "python_compilation": "passed"
   },
-  "python_compile": "passed",
-  "blender_registration_and_baking": "not run locally; bpy unavailable",
-  "interactive_timeline_and_gpu_drawing": "not run",
-  "real_kimodo_model_inference": "not run",
-  "windows_wsl_cuda_integration": "not run",
-  "ci": {
-    "configured_smoke_versions": [
-      "4.5.3",
-      "5.2.1"
-    ],
-    "status": "pending publication; consult actual GitHub Actions results"
-  },
-  "note": "Mock-model contract tests validate adapter arguments and frame accounting, not generated motion quality."
+  "new_coverage": [
+    "preset paths and manual folders",
+    "download authorization",
+    "offline generation regardless of legacy flag",
+    "cache relocation and token-path preservation",
+    "complete checkpoints, normalization statistics and LFS-pointer rejection",
+    "partial downloads and shard availability",
+    "only selected model plus optional encoder/base downloads",
+    "local loader config contract",
+    "storage operations bypass model initialization"
+  ],
+  "not_tested": [
+    "actual model downloads and gated authentication",
+    "real Kimodo inference/CUDA",
+    "desktop Blender mouse and drawing",
+    "native Windows/WSL runtime"
+  ],
+  "ci": "Workflow includes Blender 4.5.3 and 5.2.1 smoke tests; verify new commit run status separately."
 }

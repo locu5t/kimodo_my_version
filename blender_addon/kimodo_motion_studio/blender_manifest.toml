@@ -1,6 +1,6 @@
 schema_version = "1.0.0"
 id = "kimodo_motion_studio"
-version = "0.2.0"
+version = "0.3.0"
 name = "Kimodo Motion Studio"
 tagline = "Native motion timelines, constraints, JSON and continuation"
 maintainer = "locu5t and contributors"

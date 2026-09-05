@@ -7,7 +7,7 @@ import zipfile
 def build(output=None):
     root=Path(__file__).resolve().parents[1]
     addon=root/"blender_addon"/"kimodo_motion_studio"
-    output=Path(output) if output else root/"blender_dist"/"kimodo_motion_studio-0.2.0.zip"
+    output=Path(output) if output else root/"blender_dist"/"kimodo_motion_studio-0.3.0.zip"
     output.parent.mkdir(parents=True,exist_ok=True)
     with zipfile.ZipFile(output,"w",compression=zipfile.ZIP_DEFLATED) as z:
         for file in sorted(addon.rglob("*")):

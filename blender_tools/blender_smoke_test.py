@@ -14,7 +14,7 @@ sys.path.insert(0,str(root/'blender_addon'))
 import kimodo_motion_studio
 from kimodo_motion_studio import rig
 from kimodo_motion_studio.motion_math import Clip, save_portable, load_portable
-from kimodo_motion_studio import studio
+from kimodo_motion_studio import studio, ui
 kimodo_motion_studio.register()
 checks=[]
 try:
@@ -71,6 +71,14 @@ try:
         for section in ('GENERATE','CONSTRAINTS','FILES','VISUALIZE','HELP'):
             s.tab=section
         # Native UI property registration is checked; mouse/GPU draw validation is interactive.
+        s.model_preset='Kimodo-G1-RP-v1'
+        assert not s.custom_model and s.skeleton_choice=='G1' and s.dataset=='RP' and s.version_choice=='v1'
+        s.model_preset='Kimodo-SOMA-RP-v1.1'
+        assert s.model=='Kimodo-SOMA-RP-v1.1'
+        assert hasattr(bpy.ops.kimodo, 'download_assets')
+        props=ui.KMD_Preferences.__annotations__
+        assert all(k in props for k in ('models_root','manual_model_path','model_cache_root','model_mode'))
+        checks.append('model preset mapping, storage preferences and explicit-download operator registered')
         checks.append('all native panel sections registered')
     report={'blender_version':bpy.app.version_string,'status':'passed','checks':checks,
             'interactive_mouse_and_gpu_draw':'not tested','real_kimodo_inference':'not tested'}

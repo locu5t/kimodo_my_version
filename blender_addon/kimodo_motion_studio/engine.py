@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 import re
 import numpy as np
+from .model_storage import (configure_environment, STORAGE_OPERATIONS, DOWNLOAD_OPERATIONS,
+                            inspect_storage, download_assets, load_selected_model)
 from .timeline import load_json, parse_prompts, frame_prompts, round_frame
 from .motion_math import Clip, resample, join_context, safe_npz, load_portable, save_portable
 
@@ -112,15 +114,15 @@ class KimodoAdapter:
         return files
 
     def generate(self, request, status):
-        from kimodo import load_model
         from kimodo.constraints import FullBodyConstraintSet, EndEffectorConstraintSet
         from kimodo.motion_rep.feature_utils import compute_heading_angle
         from kimodo.tools import seed_everything
         prompts = parse_prompts(request["timeline"])
         status("loading_model", "Loading Kimodo model and text encoder")
-        key = (request.get("model", "Kimodo-SOMA-RP-v1.1"), request.get("device", "cuda:0"))
+        key = (request.get("model", "Kimodo-SOMA-RP-v1.1"), request.get("device", "cuda:0"),
+               json.dumps(request.get("storage", {}), sort_keys=True))
         if getattr(self, "_model_key", None) != key:
-            self._model = load_model(key[0], device=key[1])
+            self._model = load_selected_model(request)
             self._model_key = key
         model = self._model
         fps = float(model.fps)
@@ -259,13 +261,28 @@ def run_job(job_dir):
     if request.get("schema_version") != 1:
         raise ValueError("Unsupported worker request schema")
     operation = request.get("operation")
-    if operation not in {"check", "import", "generate", "continue", "export", "prepare"}:
+    if operation not in {"check", "import", "generate", "continue", "export", "prepare"} | STORAGE_OPERATIONS:
         raise ValueError("Unknown worker operation")
     def status(state, message):
         atomic_json(folder / "status.json", {"state": state, "message": message})
-    if not request.get("allow_downloads", False):
-        os.environ["HF_HUB_OFFLINE"] = "1"
-        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+    configure_environment(request)
+    if operation in STORAGE_OPERATIONS:
+        if operation in DOWNLOAD_OPERATIONS:
+            download_assets(request, status)
+        report = inspect_storage(request)
+        atomic_json(folder / "model_report.json", report)
+        message = ("Required local files are available (not an inference test)" if report["ready"]
+                   else "Local file check finished; some model/dependency files are missing. See model_report.json")
+        result = {"state": "done", "message": message, "model_report": report}
+        atomic_json(folder / "status.json", result)
+        return result
+    if "storage" in request and operation in {"generate", "continue", "prepare"}:
+        report = inspect_storage(request)
+        if not report["ready"]:
+            missing = [row["component"] for row in report["components"] if not row["ready"]]
+            atomic_json(folder / "model_report.json", report)
+            raise ValueError("Missing/incomplete local files: " + "; ".join(missing) +
+                             ". Use Check local files and Download / resume, or fix the manual path")
     status("initializing", "Checking Kimodo runtime")
     adapter = KimodoAdapter()
     if operation == "check":
@@ -290,8 +307,7 @@ def run_job(job_dir):
             clip = resample(clip, float(request.get("output_fps", clip.fps)))
             info = {}
         elif operation == "prepare":
-            from kimodo import load_model
-            model = load_model(request["model"], device=request.get("device", "cuda:0"))
+            model = load_selected_model(request)
             skeleton = adapter.build(77 if model.skeleton.nbjoints == 30 else model.skeleton.nbjoints)
             neutral_frames = max(30, int(round(float(request.get("output_fps", model.fps)))))
             root = np.zeros((neutral_frames,3), dtype=np.float32)

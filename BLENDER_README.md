@@ -1,4 +1,4 @@
-# Kimodo Motion Studio — native Blender alpha 0.2.0
+# Kimodo Motion Studio — native Blender alpha 0.3.0
 
 A native Blender adaptation of Kimodo's authoring workflow, not a browser window
 embedded in Blender. The 3D View is the motion viewer, the Dope Sheet contains
@@ -12,7 +12,7 @@ modified by this integration.
 ## Install
 
 Build with `python blender_tools/build_addon.py`, then install
-`blender_dist/kimodo_motion_studio-0.2.0.zip` using Blender's **Install from Disk**.
+`blender_dist/kimodo_motion_studio-0.3.0.zip` using Blender's **Install from Disk**.
 The manifest is at the archive root. Do not install a GitHub source ZIP as an
 extension. Disable/remove the earlier `kimodo_blender` 0.1.0 extension or old
 scaffold first, to avoid duplicate `kimodo.*` operators.
@@ -27,7 +27,74 @@ working Kimodo environment and this repository's local path. PyTorch runs in an
 external worker, not inside Blender. Native Windows/Linux and WSL command
 construction is included. WSL workers and job files must be on Windows drives
 mapped under `/mnt/<drive>`; UNC paths are not supported. Check the backend before
-generation. Model downloads are disabled unless explicitly permitted.
+generation. Generation is always offline. Models download only through the explicit Download / resume action.
+
+## Local model storage (0.3.0)
+
+In **Generate**, choose a complete model from the **Model** dropdown. Storage has
+exactly two modes: **Download folder** and **Manual path**. Paths are preferences,
+not imported from prompt/project JSON. The existing timeline and continuation
+features are unchanged.
+
+### Download to a chosen folder
+
+Set **Model download folder** to your preferred local directory. Click
+**Download / resume** and confirm the model and destination. The add-on downloads
+only that motion model, into `<download folder>/<model name>/`. Leave **Also
+download required text encoder** enabled for the first setup, or disable it when
+your text models are already available. Download jobs run in the external Python
+worker without blocking Blender or initializing a GPU model. Cancel stops the
+worker; retrying reuses already downloaded files where supported by the Hub.
+
+Shared text encoder weights use `<download folder>/.huggingface/hub/` by default;
+Xet transfer cache uses the sibling `xet/` folder. Under **Dependency/cache options**,
+an explicit **Dependency cache folder** overrides the `.huggingface` home. Point it
+to an existing Hugging Face home to reuse a previous cache (the home containing
+`hub/`, not a `snapshots/` directory). A **Download text encoder only** action is
+also available. Selecting another storage folder never automatically moves or
+deletes your previous files.
+
+The standard text encoder needs all three components: the gated
+`meta-llama/Meta-Llama-3-8B-Instruct` base, plus the McGill-NLP LLM2Vec MNTP and
+supervised adapters. The base can require many GB; downloading only the small
+adapters is insufficient. For gated access, approve the model's terms on Hugging
+Face and authenticate in your external Kimodo environment (`hf auth login`).
+The worker preserves the existing token-file location when changing cache homes.
+Credentials are not requested by the add-on, copied into project JSON, or included
+in this repository. Downloads do not accept model license terms on your behalf.
+
+### Use existing files without copying
+
+Switch **Model location** to **Manual path** and browse to the *complete checkpoint
+folder*. It may have any folder name: the loader uses that exact folder in place,
+without renaming it or making symlinks. It must contain `config.yaml`, weights,
+and the normalization `stats/` tree, not just a `.safetensors` file. Manual motion
+folders are read-only to the download manager. For text encoder dependencies,
+select an existing cache home or explicitly download them to your chosen folder.
+Use only trusted checkpoint configurations and weights: Kimodo configurations
+instantiate Python classes, and some checkpoint formats may use pickle loading.
+
+### Local checks and offline execution
+
+**Check local files** inspects the motion config, referenced weights/statistics,
+the three text components, and indexed weight shards. It rejects missing/empty
+files, Git LFS pointer files, and pending motion downloads. It does not load
+weights or assert GPU compatibility. Details are written to the job's
+`model_report.json`. Changing the selected model/path invalidates the displayed
+check. The check and generation do not make network requests through Hugging Face.
+
+Generation, continuation and rig preparation force `HF_HUB_OFFLINE=1`,
+`TRANSFORMERS_OFFLINE=1` and a local LLM2Vec encoder. There is no cloud inference
+and no API-encoder probe. Missing files cause an error rather than a download.
+Only the two explicit download operations clear the offline flags. These settings
+apply to the child worker only, not your system or Blender's Python environment.
+The legacy 0.2.0 `allow_downloads` flag is no longer used.
+
+The adapter uses the same OmegaConf/instantiate helpers as upstream to load an
+exact local checkpoint. No modifications to Kimodo's model code are required.
+For WSL, select Windows-drive paths in Blender; model and cache paths are converted
+for the Linux worker. Native Windows/WSL inference and actual large downloads
+still require validation on your computer.
 
 ## Interface and features
 
@@ -127,7 +194,7 @@ See `BLENDER_VALIDATION.json` for the local build results. Pure timing/math,
 constraint-compilation and mocked-model contract tests are runnable with:
 
 ```powershell
-python -m pip install numpy pytest
+python -m pip install numpy pytest omegaconf huggingface_hub
 python -m pytest blender_tests -q
 ```
 
